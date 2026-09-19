@@ -30,7 +30,12 @@ try {
     });
     const shot = (name) => page.screenshot({path: `${output}/${width}-${name}.png`, fullPage: true});
     const mode = async (name) => { await act(button("놀이 메뉴")); await act(button(name)); await settle(); };
-    const marker = () => page.evaluate(() => window.game_world_view().stoppedTile);
+    const marker = () => page.evaluate(() => {
+      // Input changes logic synchronously; the Three.js view updates on a frame.
+      // Flush that frame without consuming any command time before inspecting it.
+      window.advanceTime(0);
+      return window.game_world_view().stoppedTile;
+    });
     const assertFailure = async (reason, pose) => {
       const s = await state();
       assert.equal(s.failure, reason);

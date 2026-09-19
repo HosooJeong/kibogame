@@ -16,9 +16,13 @@ concurrency:
 
 jobs:
   build:
-    name: Test and build
+    name: Test and build (${{ matrix.browser-suite }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser-suite: ["test:browser", "test:feedback"]
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,6 +42,7 @@ jobs:
       - name: Test the built game in a browser
         env:
           GAME_URL: http://127.0.0.1:4173/kibogame/
+          BROWSER_SUITE: ${{ matrix.browser-suite }}
         run: |
           mkdir -p output
           npm run preview -- --port 4173 --strictPort > output/preview.log 2>&1 &
@@ -50,10 +55,9 @@ jobs:
             sleep 1
           done
           curl --fail --silent "$GAME_URL" > /dev/null
-          npm run test:browser
-          npm run test:feedback
+          npm run "$BROWSER_SUITE"
       - name: Upload site
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && matrix.browser-suite == 'test:browser'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
