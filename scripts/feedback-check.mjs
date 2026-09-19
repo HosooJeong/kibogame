@@ -23,7 +23,11 @@ try {
     const command = (name) => act(page.locator(`[data-command=${name}]`));
     const state = () => page.evaluate(() => JSON.parse(window.render_game_to_text()));
     const idle = () => page.waitForFunction(() => !JSON.parse(window.render_game_to_text()).busy);
-    const settle = () => page.waitForTimeout(100);
+    // Wait across a paint so ResizeObserver can refit the camera after mode/layout
+    // changes. A fixed 100ms delay is not sufficient on a busy software GPU.
+    const settle = () => page.evaluate(() => new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    }));
     const layout = () => page.evaluate(() => {
       const r = document.querySelector("canvas").getBoundingClientRect();
       return {canvas: {x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height}, bounds: window.game_world_bounds(), scale: visualViewport.scale};
